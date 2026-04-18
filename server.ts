@@ -11,6 +11,15 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Health Check for debugging external hosting
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV || "not set"
+  });
+});
+
 const SMM_API_URL = process.env.SMM_API_URL || "https://glorysmmpanel.com/api/v2";
 const SMM_API_KEY = process.env.SMM_API_KEY || "8ecc98412894c3dbcc74523ccdb0d3938e067223";
 
@@ -65,9 +74,15 @@ app.get("/api/services", async (req, res) => {
 
   try {
     const currentMargin = await getProfitMargin();
-    const response = await axios.post(SMM_API_URL, {
-      key: SMM_API_KEY,
-      action: "services"
+    
+    // Use URLSearchParams for application/x-www-form-urlencoded (standard for SMM panels)
+    const params = new URLSearchParams();
+    params.append('key', SMM_API_KEY);
+    params.append('action', 'services');
+
+    const response = await axios.post(SMM_API_URL, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 10000 // 10s timeout
     });
     
     // Profit margin from database
@@ -116,12 +131,15 @@ app.get("/api/services", async (req, res) => {
 app.post("/api/order", async (req, res) => {
   const { service, link, quantity } = req.body;
   try {
-    const response = await axios.post(SMM_API_URL, {
-      key: SMM_API_KEY,
-      action: "add",
-      service,
-      link,
-      quantity
+    const params = new URLSearchParams();
+    params.append('key', SMM_API_KEY);
+    params.append('action', 'add');
+    params.append('service', service);
+    params.append('link', link);
+    params.append('quantity', quantity);
+
+    const response = await axios.post(SMM_API_URL, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     res.json(response.data);
   } catch (error) {
@@ -133,10 +151,13 @@ app.post("/api/order", async (req, res) => {
 app.get("/api/status/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const response = await axios.post(SMM_API_URL, {
-      key: SMM_API_KEY,
-      action: "status",
-      order: id
+    const params = new URLSearchParams();
+    params.append('key', SMM_API_KEY);
+    params.append('action', 'status');
+    params.append('order', id);
+
+    const response = await axios.post(SMM_API_URL, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     res.json(response.data);
   } catch (error) {
@@ -146,13 +167,17 @@ app.get("/api/status/:id", async (req, res) => {
 });
 
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const isProduction = process.env.NODE_ENV === "production" || process.env.VITE_USER_NODE_ENV === "production";
+  
+  if (!isProduction) {
+    console.log("Starting in DEVELOPMENT mode...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
+    console.log("Starting in PRODUCTION mode...");
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
