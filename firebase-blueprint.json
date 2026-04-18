@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and balance information.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "balance": { "type": "number", "description": "Current wallet balance in INR" },
+        "ordersCount": { "type": "number" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "balance", "isAdmin"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "SMM service order details.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "link": { "type": "string" },
+        "quantity": { "type": "number" },
+        "charge": { "type": "number", "description": "Amount deducted from wallet (+20% margin)" },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "cancelled", "partial", "error"] },
+        "externalOrderId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "serviceId", "quantity", "charge", "status"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction for wallet top-up or order payment.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "utr": { "type": "string", "description": "Unique Transaction Reference for UPI" },
+        "type": { "type": "string", "enum": ["add_funds", "order"] },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "type", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User documents mapping Firebase Auth UID to profile."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "History of orders placed by users."
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Payment logs and wallet funding requests."
+    }
+  }
+}
