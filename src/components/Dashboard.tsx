@@ -76,6 +76,14 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
     if (!quickOrderService || !quickLink || !quickQuantity) return toast.error('Please fill all fields');
     
     const qty = parseInt(quickQuantity);
+    
+    // Just trim, no aggressive cleaning as some providers expect full URLs
+    const cleanLink = quickLink.trim();
+
+    if (cleanLink.length < 10) {
+      return toast.error('Please enter a valid, complete link');
+    }
+
     if (qty < parseInt(quickOrderService.min) || qty > parseInt(quickOrderService.max)) {
       return toast.error(`Quantity must be between ${quickOrderService.min} and ${quickOrderService.max}`);
     }
@@ -88,7 +96,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
     try {
       const apiRes = await axios.post('/api/order', {
         service: quickOrderService.service,
-        link: quickLink,
+        link: cleanLink,
         quantity: qty
       });
 
@@ -116,10 +124,11 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
         setQuickLink('');
         setQuickQuantity('');
       } else {
-        toast.error(apiRes.data.error || 'API Error');
+        toast.error(apiRes.data.error || 'Failed to place order');
       }
-    } catch (error) {
-      toast.error('Failed to place order');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || 'Failed to place order';
+      toast.error(errorMsg);
     } finally {
       setIsOrdering(false);
     }

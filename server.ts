@@ -138,17 +138,27 @@ app.post("/api/order", async (req, res) => {
     const params = new URLSearchParams();
     params.append('key', SMM_API_KEY);
     params.append('action', 'add');
-    params.append('service', service);
-    params.append('link', link);
-    params.append('quantity', quantity);
+    params.append('service', String(service));
+    params.append('link', String(link));
+    params.append('quantity', String(quantity));
 
     const response = await axios.post(SMM_API_URL, params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 15000 // 15s timeout
     });
+
+    console.log("SMM API Response:", JSON.stringify(response.data));
+
+    // SMM panels often return error in a 200 response
+    if (response.data.error) {
+      return res.status(400).json({ error: response.data.error });
+    }
+
     res.json(response.data);
-  } catch (error) {
-    console.error("Error placing order:", error);
-    res.status(500).json({ error: "Failed to place order" });
+  } catch (error: any) {
+    const errorMsg = error.response?.data?.error || error.message || "Provider API Error";
+    console.error("Order API detailed error:", errorMsg);
+    res.status(error.response?.status || 500).json({ error: errorMsg });
   }
 });
 
