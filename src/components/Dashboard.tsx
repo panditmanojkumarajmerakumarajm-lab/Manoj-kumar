@@ -41,8 +41,9 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
       try {
         const res = await axios.get('/api/services');
         setServices(res.data);
-      } catch (err) {
-        toast.error('Failed to load services');
+      } catch (err: any) {
+        console.error('Services Fetch Error:', err.response?.data || err.message);
+        toast.error('Failed to load services. Please check backend connection.');
       } finally {
         setLoading(false);
       }
