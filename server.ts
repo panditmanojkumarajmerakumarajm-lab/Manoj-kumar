@@ -10,6 +10,10 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
+// Firebase Config for dynamic settings
+const FIREBASE_PROJECT_ID = "gen-lang-client-0848123495";
+const FIREBASE_DB_ID = "ai-studio-b78eb1bc-d446-4a62-b8fa-e1deb144e16c";
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -26,10 +30,6 @@ app.get("/api/health", (req, res) => {
 
 const SMM_API_URL = process.env.SMM_API_URL || "https://glorysmmpanel.com/api/v2";
 const SMM_API_KEY = process.env.SMM_API_KEY || "8ecc98412894c3dbcc74523ccdb0d3938e067223";
-
-// Firebase Config for dynamic settings
-const FIREBASE_PROJECT_ID = "gen-lang-client-0848123495";
-const FIREBASE_DB_ID = "ai-studio-b78eb1bc-d446-4a62-b8fa-e1deb144e16c";
 
 // Cache for services to prevent 429 rate limit errors
 let cachedServices: any[] | null = null;

@@ -12,8 +12,7 @@ service cloud.firestore {
     function isAdmin() { 
       return isSignedIn() && (
         (request.auth.token.email.lower() == 'tiwarigautam819@gmail.com') ||
-        (request.auth.token.email.lower() == 'kumar493891@gmail.com') ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
+        (request.auth.token.email.lower() == 'kumar493891@gmail.com')
       );
     }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
@@ -22,86 +21,32 @@ service cloud.firestore {
 
     // 1. Users Collection
     match /users/{userId} {
-      function isValidUser(data) {
-        return data.keys().hasAll(['email', 'balance', 'ordersCount', 'isAdmin', 'createdAt'])
-          && data.email is string
-          && data.balance is number
-          && data.ordersCount is number
-          && data.isAdmin is bool
-          && data.createdAt is string;
-      }
-
-      allow get: if isOwner(userId) || isAdmin();
-      
-      // Users can create their own profile initially with 0 balance
-      allow create: if isOwner(userId) 
-        && isValidUser(incoming())
-        && incoming().balance == 0
-        && incoming().isAdmin == false;
-
-      // Users can only update their own profile for non-critical fields (none defined yet for self-update)
-      // Admins can update everything (e.g., adding balance)
-      allow update: if (
-        isAdmin() && isValidUser(incoming())
-      ) || (
-        isOwner(userId) 
-        && isValidUser(incoming())
-        && incoming().balance == existing().balance // User cannot change balance
-        && (incoming().isAdmin == existing().isAdmin || request.auth.token.email.lower() in ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com']) // Specific owners can self-promote
+      allow get: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isAdmin() || (
+        isOwner(userId) && 
+        incoming().balance <= existing().balance &&
+        incoming().isAdmin == existing().isAdmin
       );
     }
 
     // 2. Orders Collection
     match /orders/{orderId} {
-      function isValidOrder(data) {
-        return data.keys().hasAll(['userId', 'serviceId', 'serviceName', 'link', 'quantity', 'charge', 'status', 'externalOrderId', 'createdAt'])
-          && data.userId == request.auth.uid
-          && data.serviceId is string
-          && data.serviceName is string
-          && data.link is string && data.link.size() < 1000
-          && data.quantity is number
-          && data.charge is number
-          && data.status in ['pending', 'processing', 'completed', 'cancelled', 'partial', 'error']
-          && data.createdAt is timestamp;
-      }
-
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      
-      // Users can create orders if they are signed in
-      allow create: if isSignedIn() && isValidOrder(incoming());
-      
-      // Admins can update status, Users cannot update
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow update: if isAdmin();
     }
 
     // 3. Transactions Collection
     match /transactions/{transactionId} {
-      function isValidTransaction(data) {
-        return data.keys().hasAll(['userId', 'amount', 'type', 'status', 'createdAt'])
-          && data.userId == request.auth.uid
-          && data.amount is number && data.amount > 0
-          && data.type in ['add_funds', 'order']
-          && data.status in ['pending', 'approved', 'rejected']
-          && data.createdAt is timestamp;
-      }
-
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      
-      // Users can create transactions (pending status)
-      allow create: if isSignedIn() 
-        && isValidTransaction(incoming())
-        && incoming().status == 'pending';
-      
-      // Admins can update status
-      allow update: if isAdmin() 
-        && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isAdmin();
     }
 
     // 4. Settings Collection
     match /settings/{docId} {
-      allow read: if true; // Public check for server-side (server uses REST)
+      allow read: if true;
       allow write: if isAdmin();
     }
   }

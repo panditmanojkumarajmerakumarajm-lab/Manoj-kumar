@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { collection, addDoc, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
-import { ShoppingBag, Clock, CheckCircle, Wallet, PlusCircle, List, ShieldCheck, Search, Instagram, Youtube, Facebook, Send, Music2, MessageSquare, Globe, LayoutGrid, X, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Clock, CheckCircle, Wallet, PlusCircle, List, ShieldCheck, Search, Instagram, Youtube, Facebook, Send, Music2, MessageSquare, Globe, LayoutGrid, X, Link as LinkIcon, AlertCircle, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { formatINR } from '../lib/utils';
 import { UserProfile, SMMService } from '../types';
 import { toast } from 'react-hot-toast';
@@ -35,6 +36,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
   const [quickLink, setQuickLink] = useState('');
   const [quickQuantity, setQuickQuantity] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -93,15 +95,27 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
     }
 
     setIsOrdering(true);
+    console.log("Placing order for service:", quickOrderService.service, " Link:", cleanLink, " Qty:", qty);
+    
     try {
+      // 1. Place order to external Provider (via server proxy)
       const apiRes = await axios.post('/api/order', {
         service: quickOrderService.service,
         link: cleanLink,
         quantity: qty
       });
 
-      if (apiRes.data.order) {
-        await addDoc(collection(db, 'orders'), {
+      console.log("Registry/Provider Response:", apiRes.data);
+
+      if (apiRes.data && (apiRes.data.order || apiRes.data.data?.order)) {
+        const orderIdFromApi = apiRes.data.order || apiRes.data.data?.order;
+        
+        // 2. SUCCESS! Now atomically deduct balance and record order in Firestore
+        const batch = writeBatch(db);
+        
+        // Record Order
+        const newOrderRef = doc(collection(db, 'orders'));
+        batch.set(newOrderRef, {
           userId: user?.uid,
           serviceId: quickOrderService.service,
           serviceName: quickOrderService.name,
@@ -109,26 +123,43 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
           quantity: qty,
           charge: price,
           status: 'pending',
-          externalOrderId: String(apiRes.data.order),
+          externalOrderId: String(orderIdFromApi),
           createdAt: serverTimestamp()
         });
 
+        // Deduct Balance
         const userRef = doc(db, 'users', user?.uid || '');
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           balance: increment(-price),
           ordersCount: increment(1)
         });
 
+        await batch.commit();
+
+        setShowSuccess(true);
         toast.success('Order placed successfully!');
-        setQuickOrderService(null);
-        setQuickLink('');
-        setQuickQuantity('');
+        
+        // Reset form
+        setTimeout(() => {
+          setShowSuccess(false);
+          setQuickOrderService(null);
+          setQuickLink('');
+          setQuickQuantity('');
+        }, 2000);
       } else {
-        toast.error(apiRes.data.error || 'Failed to place order');
+        const errorMsg = apiRes.data.error || 'Provider rejected order';
+        toast.error(`Order Failed: ${errorMsg}`);
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Failed to place order';
-      toast.error(errorMsg);
+      console.error("Order process caught error:", error);
+      const isFirestoreError = !error.response;
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to place order';
+      
+      if (isFirestoreError) {
+        toast.error('Provider order placed but balance update failed. Please contact support.');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setIsOrdering(false);
     }
@@ -211,13 +242,32 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
                 </div>
               )}
 
-              <button
-                disabled={isOrdering}
+              <motion.button
+                disabled={isOrdering || showSuccess}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="btn-primary w-full py-5 text-xl font-bold shadow-2xl shadow-blue-900/40"
+                className={`w-full py-5 text-xl font-extrabold shadow-2xl transition-all rounded-2xl flex items-center justify-center gap-3 ${
+                  showSuccess 
+                    ? 'bg-emerald-500 shadow-emerald-900/40 text-white translate-y-[-2px]' 
+                    : isOrdering
+                      ? 'bg-blue-600/50 cursor-not-allowed opacity-80'
+                      : 'bg-blue-600 shadow-blue-900/40 hover:bg-blue-500 hover:shadow-blue-500/20 active:translate-y-0 text-white'
+                }`}
               >
-                {isOrdering ? 'Placing Order...' : 'Place Order Now'}
-              </button>
+                {showSuccess ? (
+                  <>
+                    <CheckCircle className="animate-in zoom-in-50 duration-300" size={24} />
+                    <span>Done!</span>
+                  </>
+                ) : isOrdering ? (
+                  <>
+                    <Loader2 className="animate-spin" size={24} />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  'Place Order Now'
+                )}
+              </motion.button>
             </form>
           </div>
         </div>
