@@ -1,4 +1,4 @@
-import { Home, PlusCircle, List, History, CreditCard, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, UserPlus, History, RotateCcw, List, Wallet, Ticket, Code, LogOut, X } from 'lucide-react';
 import { auth } from '../firebase';
 import { cn } from '../lib/utils';
 
@@ -6,72 +6,83 @@ interface SidebarProps {
   currentTab: string;
   setTab: (tab: string) => void;
   isAdmin: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'new-order', label: 'New Order', icon: PlusCircle },
+  { id: 'dashboard', label: 'New Order', icon: ShoppingCart },
+  { id: 'child-panels', label: 'Child Panels', icon: UserPlus },
   { id: 'orders', label: 'Orders', icon: History },
-  { id: 'wallet', label: 'Add Funds', icon: CreditCard },
+  { id: 'refill', label: 'Refill History', icon: RotateCcw },
+  { id: 'services', label: 'Services', icon: List },
+  { id: 'wallet', label: 'Deposit', icon: Wallet },
+  { id: 'tickets', label: 'Tickets', icon: Ticket },
+  { id: 'api', label: 'API', icon: Code },
 ];
 
-export default function Sidebar({ currentTab, setTab, isAdmin }: SidebarProps) {
+export default function Sidebar({ currentTab, setTab, isAdmin, isOpen, onClose }: SidebarProps) {
   return (
-    <div className="hidden md:flex w-64 bg-slate-900 h-screen flex-col border-r border-slate-800">
-      <div className="p-6 flex items-center space-x-3">
-        <div className="w-12 h-12 rounded-full border-2 border-blue-500/20 p-0.5 bg-slate-800 shrink-0 overflow-hidden shadow-lg shadow-blue-500/10">
-          <img 
-            src="https://cdn.phototourl.com/free/2026-04-18-b1b736c3-eafe-4366-89b3-b1eb5ee9a62f.png" 
-            alt="BharatSMM Logo" 
-            className="w-full h-full object-cover rounded-full"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-blue-500 tracking-tight">BharatSMM</h1>
-          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-none">SMM Panel</p>
-        </div>
+    <div className={cn(
+      "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-300 transform md:relative md:translate-x-0 overflow-y-auto",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="p-4 flex items-center justify-between border-b border-slate-100 md:hidden">
+        <span className="font-bold text-[#0088cc]">Menu</span>
+        <button onClick={onClose} className="p-2 text-slate-400">
+          <X size={20} />
+        </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="py-2">
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setTab(item.id)}
+            onClick={() => {
+              if (['api', 'tickets', 'child-panels'].includes(item.id)) {
+                window.open(`https://wa.me/918955932061?text=Hello, I need help with ${item.label}`, '_blank');
+              } else {
+                setTab(item.id);
+              }
+              onClose();
+            }}
             className={cn(
-              "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all",
+              "w-full flex items-center space-x-3 px-6 py-3 transition-colors text-sm font-medium",
               currentTab === item.id 
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" 
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "text-[#0088cc] bg-slate-50 border-r-4 border-[#0088cc]" 
+                : "text-slate-600 hover:bg-slate-50 hover:text-[#0088cc]"
             )}
           >
-            <item.icon size={20} />
-            <span className="font-medium">{item.label}</span>
+            <item.icon size={18} className="shrink-0" />
+            <span>{item.label}</span>
           </button>
         ))}
 
         {isAdmin && (
           <button
-            onClick={() => setTab('admin')}
+            onClick={() => {
+              setTab('admin');
+              onClose();
+            }}
             className={cn(
-              "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all mt-8",
+              "w-full flex items-center space-x-3 px-6 py-3 transition-colors text-sm font-medium mt-4",
               currentTab === 'admin' 
-                ? "bg-purple-600 text-white" 
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "text-purple-600 bg-slate-50 border-r-4 border-purple-600" 
+                : "text-slate-600 hover:bg-slate-50 hover:text-purple-600"
             )}
           >
-            <ShieldCheck size={20} />
-            <span className="font-medium">Admin Panel</span>
+            <LayoutGrid size={18} className="shrink-0" />
+            <span>Admin Panel</span>
           </button>
         )}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="absolute bottom-0 w-full p-4 border-t border-slate-100">
         <button
           onClick={() => auth.signOut()}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-medium"
+          className="w-full flex items-center space-x-3 px-4 py-2 text-slate-500 hover:text-red-600 transition-colors text-sm font-medium"
         >
-          <LogOut size={20} />
+          <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>

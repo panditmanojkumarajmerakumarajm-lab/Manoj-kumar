@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { toast } from 'react-hot-toast';
-import { Mail, Lock, LogIn, UserPlus, KeyRound } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, KeyRound, Loader2 } from 'lucide-react';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,10 +35,13 @@ export default function Auth() {
     }
 
     setLoading(true);
+    console.log("Attempting password reset for:", email);
     try {
       await sendPasswordResetEmail(auth, email);
-      toast.success('Password reset link sent to your email!');
+      console.log("Reset email sent successfully");
+      toast.success('Password reset link sent! Please check your Inbox and Spam folder.');
     } catch (error: any) {
+      console.error("Password reset error:", error);
       toast.error(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
@@ -46,95 +49,86 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[grid-slate-900/[0.04]] relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
-      <div className="absolute bottom-0 -right-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
-
-      <div className="w-full max-w-md space-y-8 glass-card p-10 rounded-[2.5rem] relative z-10">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f4f6f9]">
+      <div className="w-full max-w-md panel-card p-6 md:p-8 space-y-8">
         <div className="text-center flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full border-4 border-blue-500/20 p-1 bg-slate-800 mb-6 shadow-2xl shadow-blue-500/20">
-            <img 
-              src="https://cdn.phototourl.com/free/2026-04-18-b1b736c3-eafe-4366-89b3-b1eb5ee9a62f.png" 
-              alt="BharatSMM Logo" 
-              className="w-full h-full object-cover rounded-full"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <h1 className="text-4xl font-black text-blue-500 tracking-tight">BharatSMM</h1>
-          <p className="mt-3 text-slate-400 font-medium tracking-wide italic">"India's Fast & Reliable SMM Panel"</p>
+          <img 
+            src="https://cdn.phototourl.com/free/2026-04-18-b1b736c3-eafe-4366-89b3-b1eb5ee9a62f.png" 
+            alt="BharatSMM Logo" 
+            className="h-16 md:h-20 w-auto mb-4"
+            referrerPolicy="no-referrer"
+          />
+          <h1 className="text-2xl font-bold text-[#333] uppercase">BharatSMM</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                  <Mail size={18} />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-tighter">Email</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Mail size={16} />
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#fcfcfc] border border-slate-200 rounded py-2.5 pl-10 pr-4 focus:ring-1 focus:ring-[#0088cc] outline-none text-sm"
+                placeholder="Email address"
+                required
+              />
             </div>
+          </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-slate-400">Password</label>
-                {isLogin && (
-                  <button
-                    type="button"
-                    onClick={handleResetPassword}
-                    className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors uppercase tracking-wider"
-                  >
-                    Forgot?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                  <Lock size={18} />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                  placeholder="••••••••"
-                  required={isLogin || !isLogin}
-                />
-              </div>
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-tighter">Password</label>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  className="text-[10px] font-bold text-[#0088cc] hover:underline uppercase"
+                >
+                  Forgot?
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Lock size={16} />
+              </span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#fcfcfc] border border-slate-200 rounded py-2.5 pl-10 pr-4 focus:ring-1 focus:ring-[#0088cc] outline-none text-sm"
+                placeholder="Password"
+                required
+              />
             </div>
           </div>
 
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 transition-all active:scale-95 shadow-xl shadow-blue-900/30"
+            className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm uppercase tracking-widest shadow-sm"
           >
             {loading ? (
-              <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
-                {isLogin ? <LogIn size={20} /> : <UserPlus size={20} />}
-                <span>{isLogin ? 'Login' : 'Create Account'}</span>
+                {isLogin ? <LogIn size={18} /> : <UserPlus size={18} />}
+                <span>{isLogin ? 'Login' : 'Signup'}</span>
               </>
             )}
           </button>
         </form>
 
-        <div className="text-center pt-4">
+        <div className="text-center pt-2">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-slate-400 hover:text-blue-400 transition-colors text-sm font-medium"
+            className="text-slate-500 hover:text-[#0088cc] transition-colors text-xs font-bold"
           >
-            {isLogin ? "Don't have an account? Register" : "Already have an account? Login"}
+            {isLogin ? "DON'T HAVE ACCOUNT? REGISTER" : "ALREADY HAVE ACCOUNT? LOGIN"}
           </button>
         </div>
       </div>
