@@ -200,13 +200,13 @@ export default function NewOrder() {
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">Service</label>
             <select
-              value={selectedService?.service || ''}
-              onChange={(e) => setSelectedService(services.find(s => s.service === e.target.value) || null)}
+              value={selectedService?.service?.toString() || ''}
+              onChange={(e) => setSelectedService(services.find(s => s.service.toString() === e.target.value) || null)}
               className="w-full bg-slate-800 border-none rounded-xl py-4 px-4 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
             >
               <option value="">Select a service...</option>
               {categoryServices.map(s => (
-                <option key={s.service} value={s.service}>
+                <option key={s.service} value={s.service.toString()}>
                   {s.name} - {formatINR(parseFloat(s.rate))} per 1k
                 </option>
               ))}

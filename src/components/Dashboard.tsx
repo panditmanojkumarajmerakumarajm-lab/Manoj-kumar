@@ -204,9 +204,9 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
               <label className="block text-sm font-bold text-[#333] mb-2 uppercase tracking-tighter">Package <span className="text-red-500">*</span></label>
               <div className="relative">
                 <select
-                  value={selectedService?.service || ''}
+                  value={selectedService?.service?.toString() || ''}
                   onChange={(e) => {
-                    const s = services.find(serv => serv.service === e.target.value);
+                    const s = services.find(serv => serv.service.toString() === e.target.value);
                     setSelectedService(s || null);
                   }}
                   className="w-full bg-[#fcfcfc] border border-slate-200 rounded py-3 px-4 focus:ring-1 focus:ring-[#0088cc] focus:border-[#0088cc] outline-none appearance-none text-sm pr-10"
@@ -214,7 +214,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
                 >
                   <option value="">Select Package</option>
                   {filteredServices.map(s => (
-                    <option key={s.service} value={s.service}>
+                    <option key={s.service} value={s.service.toString()}>
                       ID:{s.service} {s.name} -- {formatINR(parseFloat(s.rate))} per 1000
                     </option>
                   ))}
