@@ -3,6 +3,7 @@ export interface UserProfile {
   email: string;
   balance: number;
   ordersCount: number;
+  totalSpend: number;
   isAdmin: boolean;
   createdAt: string;
 }

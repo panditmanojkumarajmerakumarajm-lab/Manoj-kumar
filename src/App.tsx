@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
+import { useOrderStatusSync } from './hooks/useOrderStatusSync';
 import { auth } from './firebase';
 import { Toaster } from 'react-hot-toast';
 import Sidebar from './components/Sidebar';
@@ -22,6 +23,8 @@ function MainApp() {
   const { user, profile } = useAuth();
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useOrderStatusSync(user?.uid);
 
   const adminEmails = ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'];
   const isAdmin = profile?.isAdmin || (profile?.email && adminEmails.includes(profile.email.toLowerCase()));
@@ -76,9 +79,9 @@ function MainApp() {
             </button>
             <div className="flex items-center">
               <img 
-                src="https://cdn.phototourl.com/free/2026-04-18-b1b736c3-eafe-4366-89b3-b1eb5ee9a62f.png" 
+                src="https://img.sanishtech.com/u/5ea88f19ae3f59add4421ea1d1b5d3a1.png" 
                 alt="BharatSMM Logo" 
-                className="h-8 md:h-10 w-auto"
+                className="h-12 md:h-16 w-auto"
                 referrerPolicy="no-referrer"
               />
             </div>

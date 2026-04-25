@@ -41,14 +41,21 @@ export default function OrdersHistory() {
   });
 
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    const s = status.toLowerCase();
+    switch (s) {
       case 'completed': 
-        return <div className="bg-[#5cb85c] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">REFILL</div>;
-      case 'cancelled': 
+        return <div className="bg-[#5cb85c] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">COMPLETED</div>;
+      case 'canceled': 
+      case 'cancelled':
       case 'error':
+      case 'refunded':
         return <div className="bg-[#d9534f] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">CANCEL</div>;
+      case 'processing':
+      case 'in progress':
+      case 'pending':
+        return <div className="bg-[#f0ad4e] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">{s === 'in progress' ? 'PROGRESS' : s}</div>;
       default: 
-        return <div className="bg-[#f0ad4e] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">{status}</div>;
+        return <div className="bg-[#0088cc] text-white px-3 py-1 rounded text-[10px] font-bold uppercase w-16 text-center">{status}</div>;
     }
   };
 

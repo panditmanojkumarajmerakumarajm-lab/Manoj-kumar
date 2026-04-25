@@ -92,7 +92,8 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
         const userRef = doc(db, 'users', user?.uid || '');
         batch.update(userRef, {
           balance: increment(-price),
-          ordersCount: increment(1)
+          ordersCount: increment(1),
+          totalSpend: increment(price)
         });
 
         await batch.commit();
@@ -138,7 +139,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
           </button>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">CURRENT BALANCE</p>
           <p className="text-2xl md:text-3xl font-bold text-[#333] mb-1">{formatINR(profile?.balance || 0).replace('₹', '₹ ')}</p>
-          <p className="text-xs text-slate-500 font-medium tracking-tight">Your total spendings : {formatINR(1080)}</p>
+          <p className="text-xs text-slate-500 font-medium tracking-tight">Your total spendings : {formatINR(profile?.totalSpend || 0)}</p>
         </div>
       </div>
 

@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: u.email || '',
             balance: 0,
             ordersCount: 0,
+            totalSpend: 0,
             isAdmin: !!isInitialAdmin,
             createdAt: new Date().toISOString()
           };

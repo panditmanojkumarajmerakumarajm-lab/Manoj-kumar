@@ -53,9 +53,9 @@ export default function Auth() {
       <div className="w-full max-w-md panel-card p-6 md:p-8 space-y-8">
         <div className="text-center flex flex-col items-center">
           <img 
-            src="https://cdn.phototourl.com/free/2026-04-18-b1b736c3-eafe-4366-89b3-b1eb5ee9a62f.png" 
+            src="https://img.sanishtech.com/u/5ea88f19ae3f59add4421ea1d1b5d3a1.png" 
             alt="BharatSMM Logo" 
-            className="h-16 md:h-20 w-auto mb-4"
+            className="h-24 md:h-32 w-auto mb-4"
             referrerPolicy="no-referrer"
           />
           <h1 className="text-2xl font-bold text-[#333] uppercase">BharatSMM</h1>
@@ -81,7 +81,9 @@ export default function Auth() {
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-tighter">Password</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                {isLogin ? 'Password' : 'Set Your New Password'}
+              </label>
               {isLogin && (
                 <button
                   type="button"
@@ -101,34 +103,40 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#fcfcfc] border border-slate-200 rounded py-2.5 pl-10 pr-4 focus:ring-1 focus:ring-[#0088cc] outline-none text-sm"
-                placeholder="Password"
+                placeholder={isLogin ? "Enter Password" : "Create a New Password"}
                 required
               />
             </div>
+            {!isLogin && (
+              <p className="text-[10px] text-slate-400 mt-1">Yahan apna ek naya password banayein jo aap yaad rakh sakein.</p>
+            )}
           </div>
 
           <button
             disabled={loading}
             type="submit"
-            className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm uppercase tracking-widest shadow-sm"
+            className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm uppercase tracking-widest shadow-sm mt-4"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
                 {isLogin ? <LogIn size={18} /> : <UserPlus size={18} />}
-                <span>{isLogin ? 'Login' : 'Signup'}</span>
+                <span>{isLogin ? 'Login Kariye' : 'Naya Account Banayein'}</span>
               </>
             )}
           </button>
         </form>
 
-        <div className="text-center pt-2">
+        <div className="text-center pt-4 border-t border-slate-100">
+          <p className="text-sm text-slate-600 mb-2">
+            {isLogin ? "Pahle se account nahi hai?" : "Kya aapka pahle se account hai?"}
+          </p>
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-slate-500 hover:text-[#0088cc] transition-colors text-xs font-bold"
+            className="w-full py-2 border-2 border-[#0088cc] text-[#0088cc] rounded-lg hover:bg-[#0088cc] hover:text-white transition-all text-xs font-bold uppercase tracking-widest"
           >
-            {isLogin ? "DON'T HAVE ACCOUNT? REGISTER" : "ALREADY HAVE ACCOUNT? LOGIN"}
+            {isLogin ? "Naya Account Register Karein" : "Login Page Par Jayein"}
           </button>
         </div>
       </div>
