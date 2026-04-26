@@ -79,7 +79,7 @@ function MainApp() {
             </button>
             <div className="flex items-center">
               <img 
-                src="https://img.sanishtech.com/u/5ea88f19ae3f59add4421ea1d1b5d3a1.png" 
+                src="https://img.sanishtech.com/u/60b9981de99ed812d965d653e39a147a.png" 
                 alt="BharatSMM Logo" 
                 className="h-12 md:h-16 w-auto"
                 referrerPolicy="no-referrer"
