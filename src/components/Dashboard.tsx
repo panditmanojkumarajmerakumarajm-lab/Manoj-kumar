@@ -445,22 +445,11 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
         </h3>
         <div className="space-y-4">
           <div className="border border-slate-100 rounded overflow-hidden">
-            <div className="bg-[#5cb85c] text-white px-4 py-1 text-xs font-bold inline-block">2026-02-01 22:58:34</div>
+            <div className="bg-[#5cb85c] text-white px-4 py-1 text-xs font-bold inline-block">2026-04-26 11:03:34</div>
             <div className="p-4 bg-[#fcfcfc]">
               <p className="text-sm font-bold flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-[#0088cc]"></span>
-                QR CODE CHANGED
-              </p>
-              <p className="text-sm text-slate-600">Please make payment in new qr code</p>
-            </div>
-          </div>
-          
-          <div className="border border-slate-100 rounded overflow-hidden">
-            <div className="bg-[#5cb85c] text-white px-4 py-1 text-xs font-bold inline-block">2025-10-15 18:22:46</div>
-            <div className="p-4 bg-[#fcfcfc]">
-              <p className="text-sm font-bold flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-[#0088cc]"></span>
-                QR CODE CHANGED
+                QR CODE CHANGED TODAY
               </p>
               <p className="text-sm text-slate-600">Please make payment in new qr code</p>
             </div>
