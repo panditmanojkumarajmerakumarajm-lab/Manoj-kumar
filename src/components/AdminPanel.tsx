@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, increment, getDoc, setDoc, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Transaction, SMMOrder } from '../types';
+import { Transaction, SMMOrder, Withdrawal } from '../types';
 import { formatINR } from '../lib/utils';
 import { toast } from 'react-hot-toast';
-import { Check, X, ShieldAlert, Percent, Save, Search, User, CreditCard, History, Tag } from 'lucide-react';
+import { Check, X, ShieldAlert, Percent, Save, Search, User, CreditCard, History, Tag, Smartphone, Landmark } from 'lucide-react';
+import { writeBatch } from 'firebase/firestore';
 
+import { useAuth } from '../AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/firestoreErrorHandler';
 
 export default function AdminPanel() {
+  const { profile, loading: authLoading } = useAuth();
   const [pendingPayments, setPendingPayments] = useState<Transaction[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<Withdrawal[]>([]);
   const [allOrders, setAllOrders] = useState<SMMOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [profitMargin, setProfitMargin] = useState('20');
   const [savingMargin, setSavingMargin] = useState(false);
@@ -21,9 +26,13 @@ export default function AdminPanel() {
   const [foundUser, setFoundUser] = useState<any>(null);
   const [searching, setSearching] = useState(false);
   const [newBalance, setNewBalance] = useState('');
+  const [addAmount, setAddAmount] = useState('');
   const [updatingBalance, setUpdatingBalance] = useState(false);
+  const [addingFunds, setAddingFunds] = useState(false);
 
   useEffect(() => {
+    if (authLoading || !profile?.isAdmin) return;
+
     // Fetch current settings
     const fetchSettings = async () => {
       const settingsRef = doc(db, 'settings', 'global');
@@ -49,6 +58,21 @@ export default function AdminPanel() {
       handleFirestoreError(error, OperationType.LIST, 'transactions');
     });
 
+    // Withdrawals listener
+    const qWith = query(
+      collection(db, 'withdrawals'),
+      where('status', '==', 'pending'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribeWith = onSnapshot(qWith, (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Withdrawal[];
+      setPendingWithdrawals(data);
+      setLoadingWithdrawals(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'withdrawals');
+    });
+
     // Orders listener (limit to 50 for performance)
     const qOrders = query(
       collection(db, 'orders'),
@@ -66,6 +90,7 @@ export default function AdminPanel() {
 
     return () => {
       unsubscribeTrans();
+      unsubscribeWith();
       unsubscribeOrders();
     };
   }, []);
@@ -115,9 +140,10 @@ export default function AdminPanel() {
             const referrerDoc = referrerSnap.docs[0];
             const commissionAmount = transaction.amount * 0.1;
             
-            // Credit 10% to referrer
+            // Credit 10% to referrer reward fields
             await updateDoc(doc(db, 'users', referrerDoc.id), {
-              balance: increment(commissionAmount)
+              referralEarnings: increment(commissionAmount),
+              referralBalance: increment(commissionAmount)
             });
             
             toast.success(`Referral commission of ${formatINR(commissionAmount)} credited to the referrer!`);
@@ -137,6 +163,35 @@ export default function AdminPanel() {
       const transRef = doc(db, 'transactions', id);
       await updateDoc(transRef, { status: 'rejected' });
       toast.success('Payment rejected');
+    } catch (err) {
+      toast.error('Rejection failed');
+    }
+  };
+
+  const handleWithdrawApprove = async (withdrawal: Withdrawal) => {
+    try {
+      const withRef = doc(db, 'withdrawals', withdrawal.id);
+      await updateDoc(withRef, { status: 'approved' });
+      toast.success('Withdrawal approved! Make sure to send the UPI payment.');
+    } catch (err) {
+      toast.error('Approval failed');
+    }
+  };
+
+  const handleWithdrawReject = async (withdrawal: Withdrawal) => {
+    try {
+      // Return balance to user on rejection
+      const batch = writeBatch(db);
+      const withRef = doc(db, 'withdrawals', withdrawal.id);
+      batch.update(withRef, { status: 'rejected' });
+      
+      const userRef = doc(db, 'users', withdrawal.userId);
+      batch.update(userRef, {
+        referralBalance: increment(withdrawal.amount)
+      });
+
+      await batch.commit();
+      toast.success('Withdrawal rejected and balance returned');
     } catch (err) {
       toast.error('Rejection failed');
     }
@@ -177,6 +232,47 @@ export default function AdminPanel() {
       toast.error('Failed to update balance');
     } finally {
       setUpdatingBalance(false);
+    }
+  };
+
+  const handleAddFundsManual = async () => {
+    if (!foundUser || !addAmount) return;
+    const amount = parseFloat(addAmount);
+    if (isNaN(amount) || amount <= 0) return toast.error('Invalid amount');
+
+    setAddingFunds(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Create approved transaction
+      const transRef = doc(collection(db, 'transactions'));
+      batch.set(transRef, {
+        userId: foundUser.id,
+        userEmail: foundUser.email,
+        amount: amount,
+        utr: 'ADMIN_MANUAL_ADD',
+        status: 'approved',
+        type: 'add_funds',
+        createdAt: new Date().toISOString() // Use string ISO for consistency if serverTimestamp is not imported, but let's check imports
+      });
+
+      // 2. Update user balance
+      const userRef = doc(db, 'users', foundUser.id);
+      batch.update(userRef, {
+        balance: increment(amount)
+      });
+
+      await batch.commit();
+      
+      setFoundUser({ ...foundUser, balance: (foundUser.balance || 0) + amount });
+      setNewBalance(String((foundUser.balance || 0) + amount));
+      setAddAmount('');
+      toast.success(`Successfully added ${formatINR(amount)} to user!`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to add funds');
+    } finally {
+      setAddingFunds(false);
     }
   };
 
@@ -265,24 +361,46 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="number"
-                      value={newBalance}
-                      onChange={(e) => setNewBalance(e.target.value)}
-                      className="w-full bg-slate-900 border-none rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                      placeholder="New balance"
-                    />
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="number"
+                        value={addAmount}
+                        onChange={(e) => setAddAmount(e.target.value)}
+                        className="w-full bg-slate-900 border-none rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="Add money (Amount)"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddFundsManual}
+                      disabled={addingFunds}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all"
+                    >
+                      {addingFunds ? 'Adding...' : 'Add Funds'}
+                    </button>
                   </div>
-                  <button
-                    onClick={handleUpdateBalance}
-                    disabled={updatingBalance}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all"
-                  >
-                    {updatingBalance ? 'Updating...' : 'Update'}
-                  </button>
+
+                  <div className="flex gap-2 border-t border-slate-700 pt-4">
+                    <div className="relative flex-1">
+                      <History size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="number"
+                        value={newBalance}
+                        onChange={(e) => setNewBalance(e.target.value)}
+                        className="w-full bg-slate-900 border-none rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                        placeholder="Set direct balance"
+                      />
+                    </div>
+                    <button
+                      onClick={handleUpdateBalance}
+                      disabled={updatingBalance}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all"
+                    >
+                      {updatingBalance ? 'Updating...' : 'Set Balance'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -318,6 +436,58 @@ export default function AdminPanel() {
                   <button
                     onClick={() => handleApprove(p)}
                     className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center space-x-2"
+                  >
+                    <Check size={18} />
+                    <span>Approve</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Referral Withdrawals Section */}
+      <div className="glass-card p-8 rounded-3xl">
+        <h3 className="text-xl font-bold mb-6">Pending Referral Withdrawals</h3>
+        {loadingWithdrawals ? (
+          <div className="p-12 text-center text-slate-500">Loading withdrawals...</div>
+        ) : pendingWithdrawals.length === 0 ? (
+          <div className="text-center p-8 border border-dashed border-slate-700 rounded-2xl text-slate-500">
+            No pending withdrawals.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingWithdrawals.map((w) => (
+              <div key={w.id} className="bg-slate-800/50 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">User: {w.userEmail}</p>
+                    <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Withdrawal</span>
+                  </div>
+                  <p className="text-2xl font-black text-blue-500">{formatINR(w.amount)}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <p className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                      <Landmark size={14} className="text-slate-500" />
+                      UPI: <span className="text-white font-bold">{w.upiId}</span>
+                    </p>
+                    <p className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                      <Smartphone size={14} className="text-slate-500" />
+                      Mobile: <span className="text-white font-bold">{w.mobileNumber}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex space-x-3 w-full md:w-auto">
+                  <button
+                    onClick={() => handleWithdrawReject(w)}
+                    className="flex-1 md:flex-none border border-red-500/20 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-all flex items-center justify-center space-x-2"
+                  >
+                    <X size={18} />
+                    <span>Reject</span>
+                  </button>
+                  <button
+                    onClick={() => handleWithdrawApprove(w)}
+                    className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl transition-all shadow-lg shadow-blue-900/40 flex items-center justify-center space-x-2"
                   >
                     <Check size={18} />
                     <span>Approve</span>

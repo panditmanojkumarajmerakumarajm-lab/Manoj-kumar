@@ -10,26 +10,46 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { 
-      return isSignedIn() && 
-        request.auth.token.email != null && (
-          request.auth.token.email.lower() == 'tiwarigautam819@gmail.com' ||
-          request.auth.token.email.lower() == 'kumar493891@gmail.com'
-        );
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email != null && 
+         request.auth.token.email.lower() in ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'])
+      );
     }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
+    function isVerified() { return request.auth.token.email_verified == true; }
 
     // 1. Users Collection
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if isAdmin();
+      allow list: if isSignedIn(); // Allow list for referral search, we check resource.data implicitly by query
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isAdmin() || (
-        isOwner(userId) && 
-        incoming().balance <= existing().balance &&
-        incoming().isAdmin == existing().isAdmin
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (
+          request.auth.uid == userId && 
+          // Prevent self-promotion to admin unless meeting hardcoded criteria
+          (incoming().get('isAdmin', false) == existing().get('isAdmin', false) || 
+           (request.auth.token.email.lower() in ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'])) &&
+          // Prevent balance increase by user
+          incoming().get('balance', 0) <= existing().get('balance', 0) &&
+          // Prevent referral balance increase by user
+          incoming().get('referralBalance', 0) <= existing().get('referralBalance', 0) &&
+          // Immutable fields
+          incoming().get('myReferralId', '') == existing().get('myReferralId', '')
+        )
       );
+    }
+
+    // 1.5 Admins Collection
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.token.email != null && (
+        request.auth.token.email.lower() == 'tiwarigautam819@gmail.com' ||
+        request.auth.token.email.lower() == 'kumar493891@gmail.com'
+      ) && request.auth.uid == userId;
     }
 
     // 2. Orders Collection
@@ -55,6 +75,16 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // 5. Withdrawals Collection
+    match /withdrawals/{withdrawalId} {
+      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && 
+                      incoming().userId == request.auth.uid && 
+                      incoming().status == 'pending' &&
+                      incoming().amount >= 100;
+      allow update: if isAdmin();
     }
   }
 }

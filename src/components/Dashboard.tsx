@@ -33,6 +33,15 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
   const [newReferralCode, setNewReferralCode] = useState('');
   const [isUpdatingReferral, setIsUpdatingReferral] = useState(false);
 
+  // Withdrawal Form Status
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawUpi, setWithdrawUpi] = useState('');
+  const [withdrawMobile, setWithdrawMobile] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+  // Derive total added funds from balance + spendings (all non-referral wallet flow)
+  const totalAddedFunds = (profile?.balance || 0) + (profile?.totalSpend || 0);
+
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -146,6 +155,55 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
     }
   };
 
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(withdrawAmount);
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
+      return toast.error('Please enter a valid amount');
+    }
+    if (!withdrawUpi || !withdrawMobile) {
+      return toast.error('Please fill all withdrawal fields');
+    }
+    if (amount > (profile?.referralBalance || 0)) {
+      return toast.error('Insufficient referral balance');
+    }
+    if (amount < 100) {
+      return toast.error('Minimum withdrawal is ₹ 100');
+    }
+
+    setIsWithdrawing(true);
+    try {
+      const batch = writeBatch(db);
+      
+      const newWithdrawalRef = doc(collection(db, 'withdrawals'));
+      batch.set(newWithdrawalRef, {
+        userId: user?.uid,
+        userEmail: user?.email,
+        mobileNumber: withdrawMobile,
+        upiId: withdrawUpi,
+        amount: amount,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      const userRef = doc(db, 'users', user?.uid || '');
+      batch.update(userRef, {
+        referralBalance: increment(-amount)
+      });
+
+      await batch.commit();
+      toast.success('Withdrawal request submitted successfully!');
+      setWithdrawAmount('');
+      setWithdrawUpi('');
+      setWithdrawMobile('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to submit withdrawal request');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8 max-w-2xl mx-auto pb-10">
       {/* Top Stats Stack */}
@@ -164,7 +222,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
           <p className="text-3xl md:text-5xl font-bold text-[#333] mb-2 tracking-tighter">1229330</p>
           <div className="mb-2 inline-flex items-center space-x-1.5 bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20 shadow-sm animate-pulse">
             <span className="text-[10px] md:text-xs font-bold text-blue-500 uppercase tracking-widest">Partnership with</span>
-            <span className="text-sm md:text-base font-black text-blue-600 uppercase tracking-tight italic scale-110">Sanvariyaset</span>
+            <span className="text-sm md:text-base font-black text-blue-600 uppercase tracking-tight italic scale-110">Sanvariya Seth</span>
           </div>
           <p className="text-xs md:text-sm text-slate-500">3+ years experience providing SMM services!</p>
         </div>
@@ -183,7 +241,17 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
           </button>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">CURRENT BALANCE</p>
           <p className="text-2xl md:text-3xl font-bold text-[#333] mb-1">{formatINR(profile?.balance || 0).replace('₹', '₹ ')}</p>
-          <p className="text-xs text-slate-500 font-medium tracking-tight">Your total spendings : {formatINR(profile?.totalSpend || 0)}</p>
+          <div className="grid grid-cols-2 gap-4 mt-4 w-full border-t border-slate-100 pt-4">
+            <div className="text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Added</p>
+              <p className="text-sm font-bold text-emerald-600">{formatINR(totalAddedFunds)}</p>
+            </div>
+            <div className="text-center border-l border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Earned</p>
+              <p className="text-sm font-bold text-blue-600">{formatINR(profile?.referralEarnings || 0)}</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 font-medium tracking-tight mt-2">Your total spendings : {formatINR(profile?.totalSpend || 0)}</p>
         </div>
 
         {/* Earning Card */}
@@ -228,7 +296,29 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
       </div>
 
       {/* Applied Referral Info or Option to Add */}
-      {!profile?.referralCode && (
+      {profile?.referralCode ? (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="panel-card bg-emerald-50 border-emerald-200 p-5 flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200/50">
+              <Check size={22} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Referral Code Applied</h4>
+              <p className="text-xs text-emerald-700 font-medium tracking-tight">
+                Linked to: <span className="font-bold text-emerald-600">{profile.referralCode}</span>
+              </p>
+            </div>
+          </div>
+          <div className="text-right hidden sm:block">
+            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest leading-none mb-1">Status</p>
+            <p className="text-xs font-black text-emerald-600 uppercase tracking-tighter">Active Commission</p>
+          </div>
+        </motion.div>
+      ) : (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -508,6 +598,62 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
                 </div>
 
                 <p className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 py-2 rounded-lg">यानि जितना ज्यादा आप शेयर करेंगे, उतनी ज्यादा आपकी कमाई बढ़ेगी 🚀</p>
+
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black uppercase tracking-widest text-[#333]">Withdraw Earnings</h4>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Available</p>
+                      <p className="text-lg font-black text-emerald-600 shadow-sm">{formatINR(profile?.referralBalance || 0)}</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleWithdraw} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">UPI ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. name@upi"
+                          value={withdrawUpi}
+                          onChange={(e) => setWithdrawUpi(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#0088cc]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Mobile No</label>
+                        <input
+                          type="tel"
+                          placeholder="10 digit number"
+                          value={withdrawMobile}
+                          onChange={(e) => setWithdrawMobile(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#0088cc]"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Amount to Withdraw</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 tracking-tighter">₹</div>
+                        <input
+                          type="number"
+                          placeholder="Min ₹ 100"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#0088cc]"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isWithdrawing}
+                      className="w-full bg-[#333] hover:bg-black text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isWithdrawing ? <Loader2 className="animate-spin size-4" /> : <CreditCard size={14} />} 
+                      {isWithdrawing ? 'Processing...' : 'Withdraw to Bank'}
+                    </button>
+                  </form>
+                </div>
 
                 <div className="space-y-3 pt-2">
                   <button

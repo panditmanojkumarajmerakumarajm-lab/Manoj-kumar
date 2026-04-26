@@ -44,6 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             totalSpend: 0,
             isAdmin: !!isInitialAdmin,
             myReferralId: generateReferralId(),
+            referralEarnings: 0,
+            referralBalance: 0,
             createdAt: new Date().toISOString()
           };
           await setDoc(userDocRef, newProfile);
@@ -61,14 +63,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await updateDoc(userDocRef, { myReferralId: newId });
               data.myReferralId = newId;
             }
+
+            // Ensure referral reward fields exist
+            if (data.referralEarnings === undefined || data.referralBalance === undefined) {
+              const updates: any = {};
+              if (data.referralEarnings === undefined) updates.referralEarnings = 0;
+              if (data.referralBalance === undefined) updates.referralBalance = 0;
+              await updateDoc(userDocRef, updates);
+              data.referralEarnings = data.referralEarnings ?? 0;
+              data.referralBalance = data.referralBalance ?? 0;
+            }
             
             // Auto-upgrade to admin in DB if missing (case-insensitive check)
-            if (u.email && adminEmails.includes(u.email.toLowerCase()) && !data.isAdmin) {
-              try {
-                await updateDoc(userDocRef, { isAdmin: true });
+            if (u.email && adminEmails.includes(u.email.toLowerCase())) {
+              let changed = false;
+              if (!data.isAdmin) {
                 data.isAdmin = true;
-              } catch (err) {
-                console.error("Critical: Failed to self-promote admin", err);
+                changed = true;
+              }
+              
+              // Also ensure presence in 'admins' collection for firestore rules
+              const adminRef = doc(db, 'admins', u.uid);
+              const adminSnap = await getDoc(adminRef);
+              if (!adminSnap.exists()) {
+                await setDoc(adminRef, { email: u.email, createdAt: new Date().toISOString() });
+              }
+
+              if (changed) {
+                await updateDoc(userDocRef, { isAdmin: true });
               }
             }
             

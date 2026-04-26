@@ -7,11 +7,28 @@
       "properties": {
         "email": { "type": "string" },
         "balance": { "type": "number", "description": "Current wallet balance in INR" },
+        "referralEarnings": { "type": "number", "description": "Total earnings from referrals" },
+        "referralBalance": { "type": "number", "description": "Current withdrawable referral balance" },
         "ordersCount": { "type": "number" },
         "isAdmin": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["email", "balance", "isAdmin"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "description": "Referral balance withdrawal requests.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "upiId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mobileNumber", "upiId", "amount", "status"]
     },
     "Order": {
       "title": "Order",
@@ -58,6 +75,10 @@
     "/transactions/{transactionId}": {
       "schema": "Transaction",
       "description": "Payment logs and wallet funding requests."
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": "Withdrawal",
+      "description": "Referral reward withdrawal requests."
     }
   }
 }

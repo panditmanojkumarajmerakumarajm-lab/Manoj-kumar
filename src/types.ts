@@ -7,6 +7,19 @@ export interface UserProfile {
   isAdmin: boolean;
   referralCode?: string;
   myReferralId: string;
+  referralEarnings: number;
+  referralBalance: number;
+  createdAt: string;
+}
+
+export interface Withdrawal {
+  id: string;
+  userId: string;
+  userEmail: string;
+  mobileNumber: string;
+  upiId: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
 
