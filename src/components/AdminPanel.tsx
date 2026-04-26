@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, increment, getDoc, setDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, increment, getDoc, setDoc, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Transaction } from '../types';
+import { Transaction, SMMOrder } from '../types';
 import { formatINR } from '../lib/utils';
 import { toast } from 'react-hot-toast';
-import { Check, X, ShieldAlert, Percent, Save, Search, User, CreditCard } from 'lucide-react';
+import { Check, X, ShieldAlert, Percent, Save, Search, User, CreditCard, History, Tag } from 'lucide-react';
+
+import { handleFirestoreError, OperationType } from '../lib/firestoreErrorHandler';
 
 export default function AdminPanel() {
   const [pendingPayments, setPendingPayments] = useState<Transaction[]>([]);
+  const [allOrders, setAllOrders] = useState<SMMOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
   const [profitMargin, setProfitMargin] = useState('20');
   const [savingMargin, setSavingMargin] = useState(false);
   
@@ -30,19 +34,40 @@ export default function AdminPanel() {
     };
     fetchSettings();
 
-    const q = query(
+    // Transactions listener
+    const qTrans = query(
       collection(db, 'transactions'),
       where('status', '==', 'pending'),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snap) => {
+    const unsubscribeTrans = onSnapshot(qTrans, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Transaction[];
       setPendingPayments(data);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'transactions');
     });
 
-    return () => unsubscribe();
+    // Orders listener (limit to 50 for performance)
+    const qOrders = query(
+      collection(db, 'orders'),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribeOrders = onSnapshot(qOrders, (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SMMOrder[];
+      setAllOrders(data);
+      setLoadingOrders(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
+    });
+
+    return () => {
+      unsubscribeTrans();
+      unsubscribeOrders();
+    };
   }, []);
 
   const handleUpdateMargin = async () => {
@@ -69,12 +94,40 @@ export default function AdminPanel() {
 
       // 2. Add balance to user
       const userRef = doc(db, 'users', transaction.userId);
+      const userSnap = await getDoc(userRef);
+      
       await updateDoc(userRef, {
         balance: increment(transaction.amount)
       });
 
+      // 3. Handle Referral Commission (10%)
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.referralCode) {
+          // Find the referrer who owns this code
+          const referrerQuery = query(
+            collection(db, 'users'), 
+            where('myReferralId', '==', userData.referralCode)
+          );
+          const referrerSnap = await getDocs(referrerQuery);
+          
+          if (!referrerSnap.empty) {
+            const referrerDoc = referrerSnap.docs[0];
+            const commissionAmount = transaction.amount * 0.1;
+            
+            // Credit 10% to referrer
+            await updateDoc(doc(db, 'users', referrerDoc.id), {
+              balance: increment(commissionAmount)
+            });
+            
+            toast.success(`Referral commission of ${formatINR(commissionAmount)} credited to the referrer!`);
+          }
+        }
+      }
+
       toast.success('Payment approved and wallet updated!');
     } catch (err) {
+      console.error(err);
       toast.error('Approval failed');
     }
   };
@@ -272,6 +325,78 @@ export default function AdminPanel() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="glass-card p-8 rounded-3xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <History className="text-blue-500" size={20} />
+            <h3 className="text-xl font-bold">Recent Master Orders</h3>
+          </div>
+          <p className="text-xs text-slate-500">Showing last 50 orders</p>
+        </div>
+        
+        {loadingOrders ? (
+          <div className="p-12 text-center text-slate-500">Loading orders...</div>
+        ) : allOrders.length === 0 ? (
+          <div className="text-center p-8 border border-dashed border-slate-700 rounded-2xl text-slate-500">
+            No orders placed yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-8 px-8">
+            <table className="w-full text-left">
+              <thead className="text-xs text-slate-500 uppercase tracking-widest border-b border-slate-700">
+                <tr>
+                  <th className="pb-4 font-bold">Order ID</th>
+                  <th className="pb-4 font-bold">Service</th>
+                  <th className="pb-4 font-bold">Charge</th>
+                  <th className="pb-4 font-bold">Status</th>
+                  <th className="pb-4 font-bold">Referral</th>
+                  <th className="pb-4 font-bold">Date</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {allOrders.map((order) => (
+                  <tr key={order.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                    <td className="py-4">
+                      <p className="text-white font-medium">#{order.externalOrderId || 'Local'}</p>
+                      <p className="text-[10px] text-slate-500">{order.id.slice(0, 10)}</p>
+                    </td>
+                    <td className="py-4">
+                      <p className="text-slate-300 max-w-[150px] truncate">{order.serviceName}</p>
+                      <p className="text-[10px] text-slate-500">Qty: {order.quantity}</p>
+                    </td>
+                    <td className="py-4 font-bold text-white">
+                      {formatINR(order.charge)}
+                    </td>
+                    <td className="py-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                        order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
+                        'bg-blue-500/10 text-blue-500'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      {order.referralCode ? (
+                        <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                          <Tag size={12} />
+                          <span className="bg-blue-500/10 px-2 py-0.5 rounded">{order.referralCode}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600">None</span>
+                      )}
+                    </td>
+                    <td className="py-4 text-slate-500 text-xs">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

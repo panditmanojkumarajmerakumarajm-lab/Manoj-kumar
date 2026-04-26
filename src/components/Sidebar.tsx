@@ -1,4 +1,4 @@
-import { LayoutGrid, ShoppingCart, UserPlus, History, RotateCcw, List, Wallet, Ticket, Code, LogOut, X } from 'lucide-react';
+import { LayoutGrid, ShoppingCart, UserPlus, History, RotateCcw, List, Wallet, Ticket, Code, LogOut, X, Instagram } from 'lucide-react';
 import { auth } from '../firebase';
 import { cn } from '../lib/utils';
 
@@ -18,6 +18,7 @@ const navItems = [
   { id: 'services', label: 'Services', icon: List },
   { id: 'wallet', label: 'Deposit', icon: Wallet },
   { id: 'tickets', label: 'Tickets', icon: Ticket },
+  { id: 'instagram', label: 'Instagram', icon: Instagram },
   { id: 'api', label: 'API', icon: Code },
 ];
 
@@ -41,6 +42,8 @@ export default function Sidebar({ currentTab, setTab, isAdmin, isOpen, onClose }
             onClick={() => {
               if (['api', 'tickets', 'child-panels'].includes(item.id)) {
                 window.open(`https://wa.me/918955932061?text=Hello, I need help with ${item.label}`, '_blank');
+              } else if (item.id === 'instagram') {
+                window.open('https://www.instagram.com/gm.musicworld?igsh=ZTRnZnhteHNzZTho', '_blank');
               } else {
                 setTab(item.id);
               }

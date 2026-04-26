@@ -22,12 +22,9 @@ service cloud.firestore {
 
     // 1. Users Collection
     match /users/{userId} {
-      // allow get for anyone signed in to see profiles (e.g. for search)
-      // allow list ONLY for admin
       allow get: if isSignedIn();
       allow list: if isAdmin();
-      
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isAdmin() || (
         isOwner(userId) && 
         incoming().balance <= existing().balance &&
@@ -37,7 +34,8 @@ service cloud.firestore {
 
     // 2. Orders Collection
     match /orders/{orderId} {
-      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow update: if isAdmin() || (
         isSignedIn() && 

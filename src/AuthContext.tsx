@@ -32,13 +32,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const adminEmails = ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'];
           const isInitialAdmin = u.email && adminEmails.includes(u.email.toLowerCase());
           
-          const newProfile = {
+          const generateReferralId = () => {
+            return Math.random().toString(36).substring(2, 10).toUpperCase();
+          };
+
+          const newProfile: UserProfile = {
             uid: u.uid,
             email: u.email || '',
             balance: 0,
             ordersCount: 0,
             totalSpend: 0,
             isAdmin: !!isInitialAdmin,
+            myReferralId: generateReferralId(),
             createdAt: new Date().toISOString()
           };
           await setDoc(userDocRef, newProfile);
@@ -49,6 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (docSnap.exists()) {
             const data = docSnap.data() as UserProfile;
             const adminEmails = ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'];
+            
+            // Generate referral ID if missing for existing users
+            if (!data.myReferralId) {
+              const newId = Math.random().toString(36).substring(2, 10).toUpperCase();
+              await updateDoc(userDocRef, { myReferralId: newId });
+              data.myReferralId = newId;
+            }
             
             // Auto-upgrade to admin in DB if missing (case-insensitive check)
             if (u.email && adminEmails.includes(u.email.toLowerCase()) && !data.isAdmin) {

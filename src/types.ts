@@ -5,6 +5,8 @@ export interface UserProfile {
   ordersCount: number;
   totalSpend: number;
   isAdmin: boolean;
+  referralCode?: string;
+  myReferralId: string;
   createdAt: string;
 }
 
@@ -18,6 +20,7 @@ export interface SMMOrder {
   charge: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'partial' | 'error';
   externalOrderId?: string;
+  referralCode?: string;
   createdAt: string;
 }
 

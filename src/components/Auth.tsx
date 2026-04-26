@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
-import { Mail, Lock, LogIn, UserPlus, KeyRound, Loader2 } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, KeyRound, Loader2, Tag } from 'lucide-react';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const generateReferralId = () => {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +24,25 @@ export default function Auth() {
         await signInWithEmailAndPassword(auth, email, password);
         toast.success('Welcome back!');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Create user profile with referral code
+        const adminEmails = ['tiwarigautam819@gmail.com', 'kumar493891@gmail.com'];
+        const isInitialAdmin = user.email && adminEmails.includes(user.email.toLowerCase());
+        
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email || '',
+          balance: 0,
+          ordersCount: 0,
+          totalSpend: 0,
+          isAdmin: !!isInitialAdmin,
+          referralCode: referralCode.trim() || null,
+          myReferralId: generateReferralId(),
+          createdAt: new Date().toISOString()
+        });
+        
         toast.success('Account created! Welcome to BharatSMM.');
       }
     } catch (error: any) {
@@ -111,6 +135,24 @@ export default function Auth() {
               <p className="text-[10px] text-slate-400 mt-1">Yahan apna ek naya password banayein jo aap yaad rakh sakein.</p>
             )}
           </div>
+
+          {!isLogin && (
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-tighter">Referral Code (Optional)</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Tag size={16} />
+                </span>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  className="w-full bg-[#fcfcfc] border border-slate-200 rounded py-2.5 pl-10 pr-4 focus:ring-1 focus:ring-[#0088cc] outline-none text-sm"
+                  placeholder="Referral code (Optional)"
+                />
+              </div>
+            </div>
+          )}
 
           <button
             disabled={loading}

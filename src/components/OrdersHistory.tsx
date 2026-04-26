@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext';
 import { formatINR } from '../lib/utils';
 import { SMMOrder } from '../types';
 import { Search, Loader2, Check, X, RefreshCw } from 'lucide-react';
+import { handleFirestoreError, OperationType } from '../lib/firestoreErrorHandler';
 
 export default function OrdersHistory() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export default function OrdersHistory() {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SMMOrder[];
       setOrders(data);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
     });
 
     return () => unsubscribe();

@@ -100,6 +100,7 @@ export default function NewOrder() {
           charge: price,
           status: 'pending',
           externalOrderId: String(apiRes.data.order),
+          referralCode: profile?.referralCode || null,
           createdAt: serverTimestamp()
         });
 
