@@ -54,26 +54,26 @@ export default function Services() {
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-bold">Services List</h2>
-          <p className="text-slate-400">Categorized social media marketing solutions.</p>
+          <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Services List</h2>
+          <p className="text-sm text-slate-500 font-medium tracking-tight">Browse our categorized social media marketing solutions.</p>
         </div>
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             placeholder="Search for something specific..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            className="w-full bg-white border border-slate-200 rounded-lg py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#0088cc] outline-none transition-all shadow-sm"
           />
         </div>
       </div>
 
       {/* Platform Selector */}
-      <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar">
+      <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar">
         {PLATFORMS.map((p) => {
           const Icon = p.icon;
           const isActive = activePlatform === p.id;
@@ -81,16 +81,16 @@ export default function Services() {
             <button
               key={p.id}
               onClick={() => setActivePlatform(p.id)}
-              className={`flex flex-col items-center justify-center min-w-[100px] p-4 rounded-3xl transition-all border ${
+              className={`flex flex-col items-center justify-center min-w-[90px] p-4 rounded-xl transition-all border ${
                 isActive 
-                  ? 'bg-blue-600 border-blue-500 shadow-xl shadow-blue-900/30' 
-                  : 'glass-card border-transparent hover:border-slate-700'
+                  ? 'bg-[#0088cc] border-[#0088cc] shadow-md' 
+                  : 'bg-white border-slate-200 hover:border-[#0088cc] shadow-sm'
               }`}
             >
-              <div className={`p-2 rounded-xl mb-2 ${isActive ? 'bg-white/20' : 'bg-slate-800'} ${isActive ? 'text-white' : p.color}`}>
-                <Icon size={24} />
+              <div className={`p-2 rounded-lg mb-2 ${isActive ? 'bg-white/20' : 'bg-slate-50'} ${isActive ? 'text-white' : p.color}`}>
+                <Icon size={22} />
               </div>
-              <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-400'}`}>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-500'}`}>
                 {p.label}
               </span>
             </button>
@@ -98,60 +98,60 @@ export default function Services() {
         })}
         <button
           onClick={() => setActivePlatform('other')}
-          className={`flex flex-col items-center justify-center min-w-[100px] p-4 rounded-3xl transition-all border ${
+          className={`flex flex-col items-center justify-center min-w-[90px] p-4 rounded-xl transition-all border ${
             activePlatform === 'other' 
-              ? 'bg-blue-600 border-blue-500 shadow-xl shadow-blue-900/30' 
-              : 'glass-card border-transparent hover:border-slate-700'
+              ? 'bg-[#0088cc] border-[#0088cc] shadow-md' 
+              : 'bg-white border-slate-200 hover:border-[#0088cc] shadow-sm'
           }`}
         >
-          <div className={`p-2 rounded-xl mb-2 ${activePlatform === 'other' ? 'bg-white/20' : 'bg-slate-800'} text-slate-400`}>
-            <Globe size={24} />
+          <div className={`p-2 rounded-lg mb-2 ${activePlatform === 'other' ? 'bg-white/20' : 'bg-slate-50'} text-slate-400`}>
+            <Globe size={22} />
           </div>
-          <span className={`text-xs font-bold uppercase tracking-widest ${activePlatform === 'other' ? 'text-white' : 'text-slate-400'}`}>
+          <span className={`text-[10px] font-black uppercase tracking-widest ${activePlatform === 'other' ? 'text-white' : 'text-slate-500'}`}>
             Other
           </span>
         </button>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Loading amazing services...</div>
+        <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest animate-pulse">Loading amazing services...</div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filtered.length === 0 ? (
-            <div className="p-12 text-center glass-card rounded-3xl text-slate-500 italic">
+            <div className="p-12 text-center panel-card text-slate-500 italic">
               No services found for this category.
             </div>
           ) : (
             filtered.map((service, idx) => (
-              <div key={idx} className="glass-card p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-800/50 transition-all border border-transparent hover:border-blue-500/20 group">
+              <div key={idx} className="panel-card p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-[#0088cc]/50 transition-all group">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-[10px] uppercase font-black text-blue-500 tracking-tighter bg-blue-500/10 px-2 rounded">
+                    <span className="text-[10px] uppercase font-black text-[#0088cc] tracking-tighter bg-[#0088cc]/10 px-2 rounded">
                       {getPlatform(service)}
                     </span>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{service.category}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate max-w-[200px]">{service.category}</span>
                   </div>
-                  <h4 className="text-lg font-bold group-hover:text-blue-400 transition-colors leading-tight">{service.name}</h4>
+                  <h4 className="text-base font-bold text-slate-800 group-hover:text-[#0088cc] transition-colors leading-tight">{service.name}</h4>
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <div className="text-[10px] bg-slate-800/80 px-3 py-1.5 rounded-xl text-slate-400 flex items-center gap-1.5 font-bold">
+                    <div className="text-[10px] bg-slate-50 px-2.5 py-1 rounded-md text-slate-500 flex items-center gap-1.5 font-bold border border-slate-100">
                       <LayoutGrid size={12} />
                       Min: {service.min}
                     </div>
-                    <div className="text-[10px] bg-slate-800/80 px-3 py-1.5 rounded-xl text-slate-400 flex items-center gap-1.5 font-bold">
+                    <div className="text-[10px] bg-slate-50 px-2.5 py-1 rounded-md text-slate-500 flex items-center gap-1.5 font-bold border border-slate-100">
                       <LayoutGrid size={12} />
                       Max: {service.max}
                     </div>
                     {service.refill && (
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-500/20 font-bold">
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-md border border-emerald-100 font-bold">
                         Auto Refill
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-6 w-full md:w-auto border-t md:border-t-0 border-slate-800/50 pt-4 md:pt-0">
+                <div className="flex items-center space-x-6 w-full md:w-auto border-t md:border-t-0 border-slate-50 pt-3 md:pt-0">
                   <div className="text-right flex flex-col items-end">
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Rate Per 1k</p>
-                    <p className="text-3xl font-black text-white glow-text">{formatINR(parseFloat(service.rate))}</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Rate Per 1k</p>
+                    <p className="text-2xl font-black text-[#0088cc]">{formatINR(parseFloat(service.rate))}</p>
                   </div>
                 </div>
               </div>

@@ -43,7 +43,7 @@ export default function Sidebar({ currentTab, setTab, isAdmin, isOpen, onClose }
               if (['api', 'tickets', 'child-panels'].includes(item.id)) {
                 window.open(`https://wa.me/918955932061?text=Hello, I need help with ${item.label}`, '_blank');
               } else if (item.id === 'instagram') {
-                window.open('https://www.instagram.com/gm.musicworld?igsh=ZTRnZnhteHNzZTho', '_blank');
+                window.open('https://www.instagram.com/newbharatsmm?igsh=MWE3NWxhNDAzeHdydw==', '_blank');
               } else {
                 setTab(item.id);
               }

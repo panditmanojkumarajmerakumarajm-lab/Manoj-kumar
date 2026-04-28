@@ -13,6 +13,7 @@ import Dashboard from './components/Dashboard';
 import NewOrder from './components/NewOrder';
 import OrdersHistory from './components/OrdersHistory';
 import Wallet from './components/Wallet';
+import Services from './components/Services';
 import AdminPanel from './components/AdminPanel';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
@@ -39,6 +40,7 @@ function MainApp() {
       case 'new-order': return <Dashboard profile={profile!} setTab={setCurrentTab} />;
       case 'orders': return <OrdersHistory />;
       case 'wallet': return <Wallet />;
+      case 'services': return <Services />;
       case 'admin': return <AdminPanel />;
       default: return <Dashboard profile={profile!} setTab={setCurrentTab} />;
     }
@@ -79,7 +81,7 @@ function MainApp() {
             </button>
             <div className="flex items-center">
               <img 
-                src="https://img.sanishtech.com/u/60b9981de99ed812d965d653e39a147a.png" 
+                src="https://img.sanishtech.com/u/be91e1d1b58877d055aa4b3ff51a5aa8.png" 
                 alt="BharatSMM Logo" 
                 className="h-12 md:h-16 w-auto"
                 referrerPolicy="no-referrer"

@@ -212,7 +212,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
         <div className="panel-card bg-white p-6 md:p-8 text-center flex flex-col items-center">
           <div className="w-16 h-16 md:w-20 md:h-20 bg-[#0088cc] rounded-full flex items-center justify-center text-white mb-4 shadow-sm overflow-hidden">
             <img 
-              src="https://img.sanishtech.com/u/60b9981de99ed812d965d653e39a147a.png" 
+              src="https://img.sanishtech.com/u/be91e1d1b58877d055aa4b3ff51a5aa8.png" 
               alt="Total Orders Icon"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

@@ -77,7 +77,7 @@ export default function Auth() {
       <div className="w-full max-w-md panel-card p-6 md:p-8 space-y-8">
         <div className="text-center flex flex-col items-center">
           <img 
-            src="https://img.sanishtech.com/u/60b9981de99ed812d965d653e39a147a.png" 
+            src="https://img.sanishtech.com/u/be91e1d1b58877d055aa4b3ff51a5aa8.png" 
             alt="BharatSMM Logo" 
             className="h-24 md:h-32 w-auto mb-4"
             referrerPolicy="no-referrer"
