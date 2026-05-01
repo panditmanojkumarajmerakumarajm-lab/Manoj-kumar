@@ -83,7 +83,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && 
                       incoming().userId == request.auth.uid && 
                       incoming().status == 'pending' &&
-                      incoming().amount >= 100;
+                      incoming().amount >= 1 &&
+                      incoming().amount <= 100000;
       allow update: if isAdmin();
     }
   }

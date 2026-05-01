@@ -167,8 +167,11 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
     if (amount > (profile?.referralBalance || 0)) {
       return toast.error('Insufficient referral balance');
     }
-    if (amount < 100) {
-      return toast.error('Minimum withdrawal is ₹ 100');
+    if (amount < 1) {
+      return toast.error('Minimum withdrawal is ₹ 1');
+    }
+    if (amount > 100000) {
+      return toast.error('Maximum withdrawal is ₹ 1,00,000');
     }
 
     setIsWithdrawing(true);
@@ -637,7 +640,7 @@ export default function Dashboard({ profile, setTab }: DashboardProps) {
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 tracking-tighter">₹</div>
                         <input
                           type="number"
-                          placeholder="Min ₹ 100"
+                          placeholder="Min ₹ 1 - Max ₹ 1,00,000"
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-[#0088cc]"
